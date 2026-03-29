@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gran Rifa</title>
+
+<style>
+/* MISMO CSS TUYO (resumido por espacio) */
+body { font-family: Arial; text-align:center; }
+.btn-numero { padding:10px; margin:2px; }
+.disponible{background:green;color:white;}
+.pendiente{background:orange;}
+.vendido{background:red;color:white;}
+</style>
+
+</head>
+
+<body>
+
+<h2>Gran Rifa</h2>
+
+<div id="grid"></div>
+
+<div id="form" style="display:none;">
+<input id="nombre" placeholder="Nombre"><br>
+<input id="dni" placeholder="DNI"><br>
+<input id="direccion" placeholder="Dirección"><br>
+<input id="celular" placeholder="Celular"><br>
+<input id="email" placeholder="Email"><br>
+<button onclick="enviar()">Reservar</button>
+</div>
+
+<script>
+
+const URL_SCRIPT = https://script.google.com/macros/s/AKfycbxL_pqIrbCDO7gHrPc8_rJ7nPTvmYIbteP2HsDgNwHvba73URw_9AqcuzJVSxfG0FQr/exec;
+
+let numeroSel = null;
+
+// cargar
+fetch(URL_SCRIPT + "?accion=obtener")
+.then(r=>r.json())
+.then(data=>{
+  let grid = document.getElementById("grid");
+  data.forEach(f=>{
+    let btn=document.createElement("button");
+    btn.innerText=f[0];
+    btn.className="btn-numero "+(f[1]||"Disponible").toLowerCase();
+    if((f[1]||"Disponible")=="Disponible"){
+      btn.onclick=()=>abrir(f[0]);
+    }
+    grid.appendChild(btn);
+  });
+});
+
+function abrir(n){
+  numeroSel=n;
+  document.getElementById("form").style.display="block";
+}
+
+function enviar(){
+  let params=new URLSearchParams({
+    accion:"reservar",
+    numero:numeroSel,
+    nombre:document.getElementById("nombre").value,
+    dni:document.getElementById("dni").value,
+    direccion:document.getElementById("direccion").value,
+    celular:document.getElementById("celular").value,
+    email:document.getElementById("email").value
+  });
+
+  fetch(URL_SCRIPT + "?" + params)
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.success){
+      alert("Reserva OK");
+      location.reload();
+    } else {
+      alert(res.message);
+    }
+  });
+}
+
+</script>
+
+</body>
+</html>
