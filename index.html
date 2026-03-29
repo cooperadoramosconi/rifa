@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gran Rifa Escolar - E.E.S. N°1</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; text-align: center; margin: 0; padding: 20px; }
+        h2 { color: #2c3e50; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 5px; max-width: 800px; margin: 20px auto; padding: 10px; }
+        .btn-numero { width: 45px; height: 45px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .disponible { background: #2ecc71; color: white; }
+        .disponible:hover { background: #27ae60; transform: scale(1.1); }
+        .pendiente { background: #f1c40f; color: #333; cursor: not-allowed; }
+        .vendido { background: #e74c3c; color: white; cursor: not-allowed; }
+        
+        #form-container { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                          background: white; padding: 25px; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.2); width: 90%; max-width: 350px; z-index: 100; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .btn-enviar { width: 100%; background: #27ae60; color: white; border: none; padding: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-cancelar { background: #95a5a6; width: 100%; color: white; border: none; padding: 8px; margin-top: 5px; cursor: pointer; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; }
+    </style>
+</head>
+<body>
+
+    <h2>🎫 Gran Rifa Escolar</h2>
+    <p>Selecciona un número en verde para reservar</p>
+
+    <div id="grid" class="grid">Cargando números...</div>
+
+    <div id="overlay"></div>
+    <div id="form-container">
+        <h3 id="txt-numero"></h3>
+        <input type="text" id="nombre" placeholder="Nombre y Apellido">
+        <input type="number" id="dni" placeholder="DNI">
+        <input type="text" id="direccion" placeholder="Dirección">
+        <input type="tel" id="celular" placeholder="Celular (Ej: 291...)">
+        <input type="email" id="email" placeholder="Email">
+        <button class="btn-enviar" onclick="enviar()">RESERVAR</button>
+        <button class="btn-cancelar" onclick="cerrar()">Cancelar</button>
+    </div>
+
+<script>
+    // 🔥 PEGA AQUÍ TU URL DE GOOGLE SCRIPT (LA QUE TERMINA EN /exec)
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycby0fzSqV7RoVni5YYBKpMO_himpnCGvDIchR1Bs7U6Shiit38-q2tIQXUa6qMpeZItv/exec";
+    const WHATSAPP_COOPERADORA = "5492915046223";
+    let numeroSel = null;
+
+    // --- CARGA INICIAL (JSONP) ---
+    function cargar() {
+        const script = document.createElement("script");
+        script.src = `${URL_SCRIPT}?accion=obtener&callback=callbackNumeros&t=${Date.now()}`;
+        document.body.appendChild(script);
+    }
+
+    window.callbackNumeros = function(data) {
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+        data.forEach(f => {
+            const btn = document.createElement("button");
+            btn.innerText = f[0];
+            const estado = (f[1] || "Disponible").toLowerCase();
+            btn.className = `btn-numero ${estado}`;
+            if (estado === "disponible") btn.onclick = () => abrir(f[0]);
+            grid.appendChild(btn);
+        });
+    };
+
+    // --- FORMULARIO ---
+    function abrir(n) {
+        numeroSel = n;
+        document.getElementById("txt-numero").innerText = "Número seleccionado: " + n;
+        document.getElementById("overlay").style.display = "block";
+        document.getElementById("form-container").style.display = "block";
+    }
+
+    function cerrar() {
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("form-container").style.display = "none";
+    }
+
+    // --- ENVÍO (JSONP) ---
+    function enviar() {
+        const nombre = document.getElementById("nombre").value;
+        const email = document.getElementById("email").value;
+        if (!nombre || !email) return alert("Completa los datos");
+
+        document.querySelector(".btn-enviar").innerText = "Procesando...";
+        document.querySelector(".btn-enviar").disabled = true;
+
+        const params = `&numero=${numeroSel}&nombre=${encodeURIComponent(nombre)}&dni=${document.getElementById("dni").value}&direccion=${encodeURIComponent(document.getElementById("direccion").value)}&celular=${document.getElementById("celular").value}&email=${encodeURIComponent(email)}`;
+        
+        const script = document.createElement("script");
+        script.src = `${URL_SCRIPT}?accion=reservar&callback=callbackReserva${params}&t=${Date.now()}`;
+        document.body.appendChild(script);
+    }
+
+    window.callbackReserva = function(res) {
+        if (res.success) {
+            alert("¡Reserva realizada! Te redirigimos a WhatsApp para el pago.");
+            const mensaje = `Hola! Reservé el nro ${numeroSel}. Nombre: ${document.getElementById("nombre").value}`;
+            window.location.href = `https://wa.me/${WHATSAPP_COOPERADORA}?text=${encodeURIComponent(mensaje)}`;
+        } else {
+            alert("Error: " + res.message);
+            location.reload();
+        }
+    };
+
+    window.onload = cargar;
+</script>
+</body>
+</html>
