@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gran Rifa</title>
+
+<style>
+body { font-family: Arial; text-align:center; }
+.btn-numero { padding:10px; margin:2px; }
+.disponible{background:green;color:white;}
+.pendiente{background:orange;}
+.vendido{background:red;color:white;}
+</style>
+
+</head>
+
+<body>
+
+<h2>Gran Rifa</h2>
+
+<div id="grid"></div>
+
+<div id="form" style="display:none;">
+  <input id="nombre" placeholder="Nombre"><br>
+  <input id="dni" placeholder="DNI"><br>
+  <input id="direccion" placeholder="Dirección"><br>
+  <input id="celular" placeholder="Celular"><br>
+  <input id="email" placeholder="Email"><br>
+  <button onclick="enviar()">Reservar</button>
+</div>
+
+<script>
+
+const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwltKn9BYRhBJNeb5Q3J6VvD-aAqunfY5J7bITKjozUXUeruOxvaLGl3ZJuhGU8bvaG/exec";
+
+let numeroSel = null;
+
+
+// ================================
+// CALLBACK NUMEROS (GLOBAL)
+// ================================
+window.cargarNumeros = function(data){
+
+  let grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  if(!data || data.length === 0){
+    grid.innerHTML = "<p>No hay datos</p>";
+    return;
+  }
+
+  data.forEach(f=>{
+    let btn=document.createElement("button");
+    btn.innerText=f[0];
+    btn.className="btn-numero "+(f[1]||"Disponible").toLowerCase();
+
+    if((f[1]||"Disponible")=="Disponible"){
+      btn.onclick=()=>abrir(f[0]);
+    }
+
+    grid.appendChild(btn);
+  });
+};
+
+
+// ================================
+// CALLBACK RESERVA
+// ================================
+window.procesarReserva = function(res){
+  if(res.success){
+    alert("Reserva OK");
+    location.reload();
+  } else {
+    alert(res.message || "Error");
+  }
+};
+
+
+// ================================
+// CARGAR DATOS (JSONP)
+// ================================
+function cargar(){
+
+  let script = document.createElement("script");
+  script.src = URL_SCRIPT + "?accion=obtener&callback=cargarNumeros";
+
+  script.onerror = function(){
+    alert("Error cargando datos del servidor");
+  };
+
+  document.body.appendChild(script);
+}
+
+
+// ================================
+function abrir(n){
+  numeroSel=n;
+  document.getElementById("form").style.display="block";
+}
+
+
+// ================================
+function enviar(){
+
+  let url = URL_SCRIPT + "?accion=reservar"
+    + "&numero=" + numeroSel
+    + "&nombre=" + encodeURIComponent(document.getElementById("nombre").value)
+    + "&dni=" + encodeURIComponent(document.getElementById("dni").value)
+    + "&direccion=" + encodeURIComponent(document.getElementById("direccion").value)
+    + "&celular=" + encodeURIComponent(document.getElementById("celular").value)
+    + "&email=" + encodeURIComponent(document.getElementById("email").value)
+    + "&callback=procesarReserva";
+
+  let s = document.createElement("script");
+  s.src = url;
+
+  s.onerror = function(){
+    alert("Error enviando datos");
+  };
+
+  document.body.appendChild(s);
+}
+
+
+// ================================
+// INICIO (IMPORTANTE)
+// ================================
+window.onload = function(){
+  cargar();
+};
+
+</script>
+
+</body>
+</html>
