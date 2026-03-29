@@ -1,0 +1,107 @@
+<script>
+
+const URL_SCRIPT = "PEGÁ_ACÁ_TU_EXEC";
+
+let numeroSel = null;
+
+
+// ================================
+// DEBUG GLOBAL
+// ================================
+window.onerror = function(msg, url, line){
+  alert("Error JS en línea " + line + ": " + msg);
+};
+
+
+// ================================
+// CALLBACK NUMEROS
+// ================================
+function cargarNumeros(data){
+  console.log("DATA RECIBIDA:", data);
+
+  if(!data){
+    alert("No llegaron datos");
+    return;
+  }
+
+  let grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  data.forEach(f=>{
+    let btn=document.createElement("button");
+    btn.innerText=f[0];
+    btn.className="btn-numero "+(f[1]||"Disponible").toLowerCase();
+
+    if((f[1]||"Disponible")=="Disponible"){
+      btn.onclick=()=>abrir(f[0]);
+    }
+
+    grid.appendChild(btn);
+  });
+}
+
+
+// ================================
+// CARGA SCRIPT JSONP
+// ================================
+function cargarDatos(){
+  let script = document.createElement("script");
+  script.src = URL_SCRIPT + "?accion=obtener&callback=cargarNumeros";
+
+  script.onerror = function(){
+    alert("Error cargando datos (script)");
+  };
+
+  document.body.appendChild(script);
+}
+
+
+// ================================
+function abrir(n){
+  numeroSel=n;
+  document.getElementById("form").style.display="block";
+}
+
+
+// ================================
+function enviar(){
+
+  let url = URL_SCRIPT + "?accion=reservar"
+    + "&numero=" + numeroSel
+    + "&nombre=" + encodeURIComponent(document.getElementById("nombre").value)
+    + "&dni=" + encodeURIComponent(document.getElementById("dni").value)
+    + "&direccion=" + encodeURIComponent(document.getElementById("direccion").value)
+    + "&celular=" + encodeURIComponent(document.getElementById("celular").value)
+    + "&email=" + encodeURIComponent(document.getElementById("email").value)
+    + "&callback=procesarReserva";
+
+  let s = document.createElement("script");
+  s.src = url;
+
+  s.onerror = function(){
+    alert("Error enviando datos");
+  };
+
+  document.body.appendChild(s);
+}
+
+
+// ================================
+function procesarReserva(res){
+  console.log("RESPUESTA RESERVA:", res);
+
+  if(res.success){
+    alert("Reserva OK");
+    location.reload();
+  } else {
+    alert(res.message);
+  }
+}
+
+
+// ================================
+// INICIAR
+// ================================
+cargarDatos();
+
+</script>
