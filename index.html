@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gran Rifa E.E.S. N°1</title>
+    <style>
+        /* DISEÑO PROFESIONAL REPARADO */
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f4f8; margin: 0; padding: 20px 0; text-align: center; color: #333; }
+        h2 { color: #2c3e50; margin-bottom: 5px; }
+        .subtitulo { color: #666; font-size: 14px; margin-bottom: 20px; }
+        
+        /* Contenedor de la Grilla */
+        .contenedor-grilla { width: 100%; overflow-x: auto; padding-bottom: 20px; -webkit-overflow-scrolling: touch; }
+        .grid { display: grid; grid-template-columns: repeat(20, 42px); gap: 6px; width: max-content; margin: 0 auto; padding: 0 15px; }
+        
+        /* Botones de números */
+        .btn-numero { width: 42px; height: 42px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .disponible { background-color: #2ecc71; color: white; }
+        .pendiente { background-color: #f1c40f; color: #333; cursor: not-allowed; opacity: 0.7; }
+        .vendido { background-color: #e74c3c; color: white; cursor: not-allowed; opacity: 0.7; }
+        .btn-numero:active:not(.pendiente):not(.vendido) { transform: scale(0.85); }
+
+        /* Leyenda */
+        .leyenda { display: flex; justify-content: center; gap: 15px; margin: 20px 0; font-size: 13px; flex-wrap: wrap; }
+        .leyenda-item { display: flex; align-items: center; gap: 6px; }
+        .cuadro { width: 16px; height: 16px; border-radius: 4px; }
+
+        /* Formulario Flotante */
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 90; backdrop-filter: blur(2px); }
+        #form-container { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                          background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+                          width: 90%; max-width: 380px; z-index: 100; text-align: left; border-top: 5px solid #27ae60; }
+        #form-container h3 { margin-top: 0; color: #2c3e50; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .btn-enviar { width: 100%; background: #27ae60; color: white; border: none; padding: 14px; font-weight: bold; cursor: pointer; border-radius: 6px; font-size: 16px; margin-top: 10px; }
+        .btn-cancelar { width: 100%; background: #f8f9fa; color: #666; border: 1px solid #ddd; padding: 10px; margin-top: 10px; cursor: pointer; border-radius: 6px; }
+        
+        #loading { margin: 40px; font-weight: bold; color: #3498db; }
+    </style>
+</head>
+<body>
+
+    <h2>🎫 Gran Rifa Escolar</h2>
+    <p class="subtitulo">E.E.S. N°1 "Gral. Enrique Mosconi"</p>
+
+    <div class="leyenda">
+        <div class="leyenda-item"><div class="cuadro" style="background:#2ecc71;"></div>Disponible</div>
+        <div class="leyenda-item"><div class="cuadro" style="background:#f1c40f;"></div>Pendiente</div>
+        <div class="leyenda-item"><div class="cuadro" style="background:#e74c3c;"></div>Vendido</div>
+    </div>
+
+    <div id="loading">Cargando tablero de números...</div>
+
+    <div class="contenedor-grilla">
+        <div id="grid" class="grid"></div>
+    </div>
+
+    <div id="overlay"></div>
+    <div id="form-container">
+        <h3 id="txt-numero">Reserva de Número</h3>
+        <input type="text" id="nombre" placeholder="Nombre y Apellido" autocomplete="name">
+        <input type="number" id="dni" placeholder="DNI (sin puntos)">
+        <input type="text" id="direccion" placeholder="Dirección">
+        <input type="tel" id="celular" placeholder="Celular (ej: 291...)">
+        <input type="email" id="email" placeholder="Email" autocomplete="email">
+        <button class="btn-enviar" id="btn-reserva" onclick="enviar()">RESERVAR AHORA</button>
+        <button class="btn-cancelar" onclick="cerrar()">Volver</button>
+    </div>
+
+<script>
+    // ⚠️ CAMBIA ESTA URL POR LA TUYA DE GOOGLE APPS SCRIPT
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbxXyz6dnVgpdHWJN3aevYNtDOWPWJrtXWesTbYAxR73QVD2SnG6gy58Qc0wVqMV-xbL/exec";
+    const WHATSAPP_COOPERADORA = "5492915046223";
+    let numeroSel = null;
+
+    // Carga inicial de datos (JSONP)
+    function cargar() {
+        const script = document.createElement("script");
+        script.src = `${URL_SCRIPT}?accion=obtener&callback=callbackNumeros&t=${Date.now()}`;
+        document.body.appendChild(script);
+    }
+
+    window.callbackNumeros = function(data) {
+        document.getElementById("loading").style.display = "none";
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+        
+        data.forEach(f => {
+            const btn = document.createElement("button");
+            btn.innerText = f[0];
+            const estado = (f[1] || "Disponible").trim().toLowerCase();
+            btn.className = `btn-numero ${estado}`;
+            if (estado === "disponible") {
+                btn.onclick = () => abrir(f[0]);
+            }
+            grid.appendChild(btn);
+        });
+    };
+
+    function abrir(n) {
+        numeroSel = n;
+        document.getElementById("txt-numero").innerText = "Reservando el Nº " + n;
+        document.getElementById("overlay").style.display = "block";
+        document.getElementById("form-container").style.display = "block";
+    }
+
+    function cerrar() {
+        document.getElementById("overlay").style.display = "none";
+        document.getElementById("form-container").style.display = "none";
+    }
+
+    function enviar() {
+        const nombre = document.getElementById("nombre").value.trim();
+        const dni = document.getElementById("dni").value.trim();
+        const direccion = document.getElementById("direccion").value.trim();
+        const celular = document.getElementById("celular").value.trim();
+        const email = document.getElementById("email").value.trim();
+
+        if (!nombre || !dni || !direccion || !celular || !email) {
+            return alert("Por favor, completa todos los campos.");
+        }
+
+        const btn = document.getElementById("btn-reserva");
+        btn.innerText = "PROCESANDO...";
+        btn.disabled = true;
+
+        const params = `&numero=${numeroSel}&nombre=${encodeURIComponent(nombre)}&dni=${dni}&direccion=${encodeURIComponent(direccion)}&celular=${celular}&email=${encodeURIComponent(email)}`;
+        
+        const script = document.createElement("script");
+        script.src = `${URL_SCRIPT}?accion=reservar&callback=callbackReserva${params}&t=${Date.now()}`;
+        document.body.appendChild(script);
+    }
+
+    window.callbackReserva = function(res) {
+        if (res.success) {
+            alert("¡Número reservado con éxito!");
+            const mensaje = `¡Hola! Acabo de reservar el número *${numeroSel}* de la rifa.\n\n*Mis datos:*\n👤 Nombre: ${document.getElementById("nombre").value}\n🪪 DNI: ${document.getElementById("dni").value}\n🏠 Dirección: ${document.getElementById("direccion").value}\n\nEnvío el comprobante por aquí.`;
+            window.location.href = `https://wa.me/${WHATSAPP_COOPERADORA}?text=${encodeURIComponent(mensaje)}`;
+        } else {
+            alert("Error: " + (res.message || "No se pudo realizar la reserva."));
+            location.reload();
+        }
+    };
+
+    window.onload = cargar;
+</script>
+</body>
+</html>
